@@ -3,9 +3,11 @@
 Shader "K13A/BlurGlass"
 {
     Properties {
-            _Size ("Size", Range(0, 300)) = 1
-            _Texel ("Blur Texel", Range(1, 300)) = 1
-            _BCurve ("Blur Curve", Range(0.1, 100)) = 0.1
+        _Color ("Color", Color) = (1, 1, 1, 1)
+        _MainTex ("Main Texture", 2D) = "white" {}
+        _Size ("Size", Range(0, 300)) = 1
+        _Texel ("Blur Texel", Range(1, 300)) = 1
+        _BCurve ("Blur Curve", Range(0.1, 100)) = 0.1
     }
        
     Category {
@@ -15,6 +17,15 @@ Shader "K13A/BlurGlass"
 
         SubShader {
     
+
+            Pass { // Original Pass behind Blur
+                CGPROGRAM
+                #pragma vertex vert
+                #pragma fragment frag
+                #include "./cginc/OriginalPass.cginc"
+                ENDCG
+            }
+
             // Horizontal blur
             GrabPass {                     
                 Tags { "LightMode" = "Always" }
