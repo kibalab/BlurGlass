@@ -19,6 +19,12 @@ Shader "K13A/BlurGlass"
     
 
             Pass { // Original Pass behind Blur
+                Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
+                ZWrite Off
+                Blend SrcAlpha OneMinusSrcAlpha
+                Cull front 
+                LOD 100
+                
                 CGPROGRAM
                 #pragma vertex vert
                 #pragma fragment frag
