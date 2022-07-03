@@ -15,9 +15,11 @@ Shader "K13A/BlurGlass"
 
         SubShader {
     
+            // Horizontal blur
             GrabPass {                     
                 Tags { "LightMode" = "Always" }
             }
+
             Pass {
                 Tags { "LightMode" = "Always" }
             
@@ -93,6 +95,7 @@ Shader "K13A/BlurGlass"
             GrabPass {                         
                 Tags { "LightMode" = "Always" }
             }
+
             Pass {
                 Tags { "LightMode" = "Always" }
             
@@ -162,11 +165,6 @@ Shader "K13A/BlurGlass"
                     return Blur(i, _GrabTexture);
                 }
                 ENDCG
-            }
-        
-            // GrabPass
-            GrabPass {                         
-                Tags { "LightMode" = "Always" }
             }
         }
     }
