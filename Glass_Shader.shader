@@ -1,10 +1,16 @@
-﻿// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+﻿// Upgrade NOTE: replaced '_Object2World' with 'unity_ObjectToWorld'
+// Upgrade NOTE: replaced '_World2Object' with 'unity_WorldToObject'
+
+// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
+
+// Upgrade NOTE: replaced 'mul(UNITY_MATRIX_MVP,*)' with 'UnityObjectToClipPos(*)'
 
 Shader "K13A/BlurGlass"
 {
     Properties {
         _Color ("Color", Color) = (1, 1, 1, 1)
         _MainTex ("Main Texture", 2D) = "white" {}
+        _Reflection ("Reflection Range", Range(0, 1)) = 0.3
         _Size ("Size", Range(0, 300)) = 1
         _Texel ("Blur Texel", Range(1, 300)) = 1
         _BCurve ("Blur Curve", Range(0.1, 100)) = 0.1
@@ -12,8 +18,7 @@ Shader "K13A/BlurGlass"
        
     Category {
     
-        Tags { "Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Opaque" }
-
+        Tags { "Queue"="Transparent" "IgnoreProjector"="False" "RenderType"="Opaque" }
 
         SubShader {
     
@@ -24,11 +29,59 @@ Shader "K13A/BlurGlass"
                 Blend SrcAlpha OneMinusSrcAlpha
                 Cull front 
                 LOD 100
-                
+
                 CGPROGRAM
                 #pragma vertex vert
                 #pragma fragment frag
                 #include "./cginc/OriginalPass.cginc"
+                ENDCG
+            }
+
+            Pass { //Reflect Pass
+                Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
+                ZWrite Off
+                Blend SrcAlpha OneMinusSrcAlpha
+                Cull Back 
+                LOD 100
+
+                CGPROGRAM
+
+                #pragma target 3.0
+
+                #pragma vertex vert
+                #pragma fragment frag
+                #include "UnityCG.cginc"
+                
+                fixed _Reflection;
+                fixed4 _Color;
+
+                struct v2f{
+                    float4 pos : SV_POSITION;
+                    float3 coord: TEXCOORD0;
+                    float3 viewDir : TEXCOORD1;
+                };
+
+                v2f vert(appdata_base v){
+                    v2f o;
+
+                    float4x4 modelMatrix = unity_ObjectToWorld;
+                    float4x4 modelMatrixInverse = unity_WorldToObject;
+
+                    o.viewDir = mul(modelMatrix, v.vertex).xyz
+                    - _WorldSpaceCameraPos;
+                    o.coord = normalize(mul(float4(v.normal, 0.0), modelMatrixInverse).xyz);
+
+                    o.pos = UnityObjectToClipPos(v.vertex);
+
+                    return o;
+                }
+
+                float4 frag(v2f i) : COLOR{
+                    fixed3 wr = reflect(i.viewDir, normalize(i.coord));
+                    float4 finalColor = UNITY_SAMPLE_TEXCUBE(unity_SpecCube0, wr) * unity_SpecCube0_HDR.r;
+                    return finalColor * _Reflection;
+                }
+
                 ENDCG
             }
 
@@ -184,5 +237,7 @@ Shader "K13A/BlurGlass"
                 ENDCG
             }
         }
+
+        
     }
 }
