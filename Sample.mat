@@ -68,9 +68,10 @@ Material:
         m_Scale: {x: 1, y: 1}
         m_Offset: {x: 0, y: 0}
     m_Floats:
-    - _BCurve: 100
+    - _BCurve: 20
     - _Blur: 0
     - _Brightness: 3
+    - _BrightnessMin: 0.3
     - _BumpAmt: 128
     - _BumpScale: 1
     - _Cutoff: 0.5
@@ -81,17 +82,17 @@ Material:
     - _GlossyReflections: 1
     - _Metallic: 0
     - _Mode: 0
-    - _NormalRange: 0.8
+    - _NormalRange: 0.3
     - _OcclusionStrength: 1
     - _Parallax: 0.02
     - _Prop2: 0
-    - _Reflection: 0.2
-    - _Size: 162
+    - _Reflection: 0.3
+    - _Size: 70
     - _SmoothnessTextureChannel: 0
     - _SpecularHighlights: 1
-    - _Speculer: 8
+    - _Speculer: 4.72
     - _SrcBlend: 1
-    - _Texel: 80
+    - _Texel: 20
     - _UVSec: 0
     - _UseSpeculer: 1
     - _ZWrite: 1

@@ -12,22 +12,20 @@ Shader "K13A/BlurGlass"
         _MainTex ("Main Texture", 2D) = "white" {}
 
         [Space(10)]
-        [Header(Normal)][Space]
 
         [Normal]_Normal ("Normal Texture", 2D) = "bump" {}
         _NormalRange ("Normal Range", Range(0, 2)) = 0.3
 
         _Reflection ("Reflection Range", Range(0, 1)) = 0.3
         _Brightness ("Brightness", Range(0, 5)) = 3
+        _BrightnessMin ("Min Brightness", Range(0, 5)) = 0.3
         
         [Space(10)]
-        [Header(Speculer)][Space]
         
         [Toggle(USE_SPEC)] _UseSpeculer("Use Speculer", int) = 0
         _Speculer ("Speculer Range", Range(0, 10)) = 1
         
         [Space(10)]
-        [Header(Blur)][Space]
 
         _Size ("Size", Range(0, 300)) = 1
         _Texel ("Blur Texel", Range(4, 300)) = 1
@@ -305,6 +303,7 @@ Shader "K13A/BlurGlass"
                 fixed _NormalRange;
                 fixed _Speculer;
                 fixed _Brightness;
+                fixed _BrightnessMin;
 
                 void Normal2TBN(half3 localnormal, float4 tangent, inout half3 T, inout half3  B, inout half3 N)
                 {
@@ -358,7 +357,7 @@ Shader "K13A/BlurGlass"
                     fixed fSpec_Phong = saturate(dot(fReflection, -normalize(i.viewDir)));
                     fSpec_Phong = pow(fSpec_Phong, _Speculer);
 
-                    float normal = fNDotL;
+                    float normal = clamp(fNDotL, _BrightnessMin, _Brightness);
                 
             #ifdef USE_SPEC
                     normal += fSpec_Phong;
@@ -371,7 +370,7 @@ Shader "K13A/BlurGlass"
                 ENDCG
             }
         }
-
-        
     }
+
+        CustomEditor "GlassEditor"
 }
