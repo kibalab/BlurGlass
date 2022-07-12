@@ -11,13 +11,24 @@ Shader "K13A/BlurGlass"
         _Color ("Color", Color) = (1, 1, 1, 1)
         _MainTex ("Main Texture", 2D) = "white" {}
 
-        _Normal ("Normal Texture", 2D) = "bump" {}
+        [Space(10)]
+        [Header(Normal)][Space]
+
+        [Normal]_Normal ("Normal Texture", 2D) = "bump" {}
         _NormalRange ("Normal Range", Range(0, 2)) = 0.3
 
         _Reflection ("Reflection Range", Range(0, 1)) = 0.3
-        _Brightness ("Brightness Range", Range(0, 5)) = 1
-        _Speculer ("Speculer Range", Range(0, 2)) = 1
+        _Brightness ("Brightness", Range(0, 5)) = 3
         
+        [Space(10)]
+        [Header(Speculer)][Space]
+        
+        [Toggle(USE_SPEC)] _UseSpeculer("Use Speculer", int) = 0
+        _Speculer ("Speculer Range", Range(0, 10)) = 1
+        
+        [Space(10)]
+        [Header(Blur)][Space]
+
         _Size ("Size", Range(0, 300)) = 1
         _Texel ("Blur Texel", Range(4, 300)) = 1
         _BCurve ("Blur Curve", Range(0.1, 100)) = 0.1
@@ -257,6 +268,8 @@ Shader "K13A/BlurGlass"
                 #pragma vertex vert
                 #pragma fragment frag
 
+                #pragma shader_feature USE_SPEC
+
 
                 #include "UnityCG.cginc"
 
@@ -292,8 +305,6 @@ Shader "K13A/BlurGlass"
                 fixed _NormalRange;
                 fixed _Speculer;
                 fixed _Brightness;
-
-
 
                 void Normal2TBN(half3 localnormal, float4 tangent, inout half3 T, inout half3  B, inout half3 N)
                 {
@@ -347,7 +358,13 @@ Shader "K13A/BlurGlass"
                     fixed fSpec_Phong = saturate(dot(fReflection, -normalize(i.viewDir)));
                     fSpec_Phong = pow(fSpec_Phong, _Speculer);
 
-                    float4 result = tex2Dproj( _GrabTexture, UNITY_PROJ_COORD(float4(i.uvgrab.x, i.uvgrab.y + _GrabTexture_TexelSize.y, i.uvgrab.z, i.uvgrab.w))) * (fNDotL + fSpec_Phong);
+                    float normal = fNDotL;
+                
+            #ifdef USE_SPEC
+                    normal += fSpec_Phong;
+            #endif
+
+                    float4 result = tex2Dproj( _GrabTexture, UNITY_PROJ_COORD(float4(i.uvgrab.x, i.uvgrab.y + _GrabTexture_TexelSize.y, i.uvgrab.z, i.uvgrab.w))) * normal;
 
                     return result * _Brightness;
                 }
