@@ -10,9 +10,16 @@ Shader "K13A/BlurGlass"
     Properties {
         _Color ("Color", Color) = (1, 1, 1, 1)
         _MainTex ("Main Texture", 2D) = "white" {}
+
+        _Normal ("Normal Texture", 2D) = "bump" {}
+        _NormalRange ("Normal Range", Range(0, 2)) = 0.3
+
         _Reflection ("Reflection Range", Range(0, 1)) = 0.3
+        _Brightness ("Brightness Range", Range(0, 5)) = 1
+        _Speculer ("Speculer Range", Range(0, 2)) = 1
+        
         _Size ("Size", Range(0, 300)) = 1
-        _Texel ("Blur Texel", Range(1, 300)) = 1
+        _Texel ("Blur Texel", Range(4, 300)) = 1
         _BCurve ("Blur Curve", Range(0.1, 100)) = 0.1
     }
        
@@ -27,7 +34,7 @@ Shader "K13A/BlurGlass"
                 Tags {"Queue"="Transparent" "IgnoreProjector"="True" "RenderType"="Transparent"}
                 ZWrite Off
                 Blend SrcAlpha OneMinusSrcAlpha
-                Cull front 
+                Cull back 
                 LOD 100
 
                 CGPROGRAM
@@ -233,6 +240,116 @@ Shader "K13A/BlurGlass"
             
                 half4 frag( v2f i ) : COLOR {
                     return Blur(i, _GrabTexture);
+                }
+                ENDCG
+            }
+
+            
+            GrabPass {                         
+                Tags { "LightMode" = "Always" }
+            }
+
+            Pass // Normal Pass
+            {
+                Tags { "LightMode" = "Always" }
+
+                CGPROGRAM
+                #pragma vertex vert
+                #pragma fragment frag
+
+
+                #include "UnityCG.cginc"
+
+                struct appdata
+                {
+                    float4 vertex : POSITION;
+                    float2 uv : TEXCOORD0;
+                    float3 normal : NORMAL;
+                    float4 tangent : TANGENT;
+                };
+
+                struct v2f
+                {
+                    float4 vertex : SV_POSITION;
+                    float2 uv : TEXCOORD0;
+
+                    float3 T : TEXCOORD1;
+                    float3 B : TEXCOORD2;
+                    float3 N : TEXCOORD3;
+
+                    float3 lightDir : TEXCOORD4;
+                    half3 viewDir : TEXCOORD5;
+                    float4 uvgrab : TEXCOORD6;
+                };
+
+                sampler2D _GrabTexture;
+                float4 _GrabTexture_ST;
+                float4 _GrabTexture_TexelSize;
+
+                sampler2D _Normal;
+                float4 _Normal_ST;
+
+                fixed _NormalRange;
+                fixed _Speculer;
+                fixed _Brightness;
+
+
+
+                void Normal2TBN(half3 localnormal, float4 tangent, inout half3 T, inout half3  B, inout half3 N)
+                {
+                    half fTangentSign = tangent.w * unity_WorldTransformParams.w;
+                    N = normalize(UnityObjectToWorldNormal(localnormal));
+                    T = normalize(UnityObjectToWorldDir(tangent.xyz));
+                    B = normalize(cross(N, T) * fTangentSign);
+                }
+
+                half3 UnpackNormalWorldNormal(half3 fTangnetNormal, half3 T, half3  B, half3 N)
+                {
+                    float3x3 TBN = float3x3(T, B, N);
+                    TBN = transpose(TBN);
+                    return mul(TBN, fTangnetNormal);
+                }
+
+
+                v2f vert(appdata v)
+                {
+                    v2f o;
+
+                    o.vertex = UnityObjectToClipPos(v.vertex);
+                    #if UNITY_UV_STARTS_AT_TOP
+                        float scale = -1.0;
+                    #else
+                        float scale = 1.0;
+                    #endif
+                    o.uvgrab.xy = (float2(o.vertex.x, o.vertex.y*scale) + o.vertex.w) * 0.5;
+                    o.uvgrab.zw = o.vertex.zw;
+
+                    o.uv = TRANSFORM_TEX(v.uv, _GrabTexture);
+
+                    o.lightDir = WorldSpaceLightDir(v.vertex);
+                    o.viewDir = normalize(WorldSpaceViewDir(v.vertex));
+
+                    Normal2TBN(v.normal, v.tangent, o.T, o.B, o.N);
+
+                    return o;
+                }
+
+                fixed4 frag(v2f i) : SV_Target
+                {
+				    fixed4 col = tex2D(_GrabTexture, i.uv);
+                    half3 fTangnetNormal = UnpackNormal(tex2D(_Normal, i.uv * _Normal_ST.rg));
+                    fTangnetNormal.xy *= _NormalRange; // 노말강도 조절
+                    float3 worldNormal = UnpackNormalWorldNormal(fTangnetNormal, i.T, i.B, i.N);
+
+                    fixed fNDotL = dot(i.lightDir, worldNormal);
+        
+                    float3 fReflection = reflect(i.lightDir, worldNormal);
+                    fixed fSpec_Phong = saturate(dot(fReflection, -normalize(i.viewDir)));
+                    fSpec_Phong = pow(fSpec_Phong, _Speculer);
+
+                    float4 result = tex2Dproj( _GrabTexture, UNITY_PROJ_COORD(float4(i.uvgrab.x, i.uvgrab.y + _GrabTexture_TexelSize.y, i.uvgrab.z, i.uvgrab.w))) * (fNDotL + fSpec_Phong);
+
+                    return result * _Brightness;
                 }
                 ENDCG
             }
